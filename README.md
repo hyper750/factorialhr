@@ -1,4 +1,6 @@
 # Factorialhr
+Python adapter to use the factorialhr api and automate
+tasks.
 
 ## Configure settings file
 Configuring the settings file we can use the `main.py`
