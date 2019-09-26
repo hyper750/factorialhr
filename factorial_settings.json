@@ -1,0 +1,17 @@
+{
+  "email": "",
+  "password": "",
+  "work": {
+    "start": "7:30",
+    "end": "15:30",
+    "minutes_variation": 10,
+    "resave": false,
+    "breaks": [
+      {
+        "start": "10:00",
+        "end": "10:30",
+        "minutes_variation": 30
+      }
+    ]
+  }
+}
