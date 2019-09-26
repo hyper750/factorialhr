@@ -321,9 +321,10 @@ class FactorialClient:
                 'end_minute': end_minute,
             })
             if self.add_worked_period(**add_worked_period_kwargs):
-                logger.info('Saved worked period for the day {} between {}:{} - {}:{}'.format(day.isoformat(),
-                                                                                              start_hour, start_minute,
-                                                                                              end_hour, end_minute))
+                logger.info('Saved worked period for the day {0:s} between {1:02d}:{2:02d} - {3:02d}:{4:02d}'.format(
+                    day.isoformat(),
+                    start_hour, start_minute,
+                    end_hour, end_minute))
 
     def logout(self):
         """Logout invalidating that session, invalidating the cookie _factorial_session
