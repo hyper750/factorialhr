@@ -10,17 +10,16 @@ import logging
 import logging.config
 import random
 from datetime import date
-
-
-logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
-logger = logging.getLogger('factorial.client')
+from constants import BASE_PROJECT, LOGGER
 
 
 class FactorialClient:
     # Folder to save the session's cookie
-    SESSIONS_FOLDER = "sessions"
+    SESSIONS_FOLDER = os.path.join(BASE_PROJECT, "sessions")
+    # Default factorial settings file
+    DEFAULT_FACTORIAL_SETTINGS = os.path.join(BASE_PROJECT, 'factorial_settings.json')
 
-    # Url's
+    # Endpoints
     BASE_NAME = "https://api.factorialhr.com/"
     # Url to be able to login (post: username, password) and logout (delete) on the api
     SESSION_URL = '{}sessions'.format(BASE_NAME)
@@ -54,7 +53,7 @@ class FactorialClient:
         if os.path.exists(cookie_path):
             with open(cookie_path, "rb") as file:
                 # TODO: Watch out the expiration of the cookie
-                logger.info('Getting the session from cookies files')
+                LOGGER.info('Getting the session from cookies files')
                 self.session.cookies.update(pickle.load(file))
 
     def login(self):
@@ -65,7 +64,7 @@ class FactorialClient:
         try:
             self.load_user_data()
             # Try to load the user info using the cookie, if can't login again using the username and password
-            logger.info('Already logged in, re-login is not needed')
+            LOGGER.info('Already logged in, re-login is not needed')
             return True
         except UserNotLoggedIn:
             payload = {
@@ -80,7 +79,7 @@ class FactorialClient:
             response = self.session.post(url=self.SESSION_URL, data=payload)
             loggedin = response.status_code == http_client.CREATED
             if loggedin:
-                logger.info('Login successfully')
+                LOGGER.info('Login successfully')
                 # Load user data
                 self.load_user_data()
                 # Save the cookies if is logged in
@@ -88,7 +87,7 @@ class FactorialClient:
                     os.mkdir(self.SESSIONS_FOLDER)
                 with open(os.path.join(self.SESSIONS_FOLDER, self.cookie_file), "wb") as file:
                     pickle.dump(self.session.cookies, file)
-                    logger.info('Sessions saved')
+                    LOGGER.info('Sessions saved')
             return loggedin
 
     @staticmethod
@@ -103,7 +102,7 @@ class FactorialClient:
         return token_value
 
     @staticmethod
-    def load_from_settings(json_settings='factorial_settings.json'):
+    def load_from_settings(json_settings=DEFAULT_FACTORIAL_SETTINGS):
         """Login from the settings if the session still valid from the saved cookies, otherwise ask for the password
 
         :param json_settings: string config filename
@@ -275,7 +274,7 @@ class FactorialClient:
             })
         return self.add_breaks_to_period(start_sign_hour, start_sign_minutes, end_sign_hour, end_sign_minutes, breaks_with_variation)
 
-    def worked_day(self, day=date.today(), json_settings='factorial_settings.json'):
+    def worked_day(self, day=date.today(), json_settings=DEFAULT_FACTORIAL_SETTINGS):
         """Mark today as worked day
 
         :param day: date to save the worked day, by default is today
@@ -295,7 +294,7 @@ class FactorialClient:
                 for worked_period in already_work:
                     self.delete_worked_period(worked_period.get('id'))
             else:
-                logger.info('Day already sign')
+                LOGGER.info('Day already sign')
                 return
 
         add_worked_period_kwargs = {
@@ -321,7 +320,7 @@ class FactorialClient:
                 'end_minute': end_minute,
             })
             if self.add_worked_period(**add_worked_period_kwargs):
-                logger.info('Saved worked period for the day {0:s} between {1:02d}:{2:02d} - {3:02d}:{4:02d}'.format(
+                LOGGER.info('Saved worked period for the day {0:s} between {1:02d}:{2:02d} - {3:02d}:{4:02d}'.format(
                     day.isoformat(),
                     start_hour, start_minute,
                     end_hour, end_minute))
@@ -333,7 +332,7 @@ class FactorialClient:
         """
         response = self.session.delete(url=self.SESSION_URL)
         logout_correcty = response.status_code == http_client.NO_CONTENT
-        logger.info('Logout successfully {}'.format(logout_correcty))
+        LOGGER.info('Logout successfully {}'.format(logout_correcty))
         self.session = requests.Session()
         path_file = os.path.join(self.SESSIONS_FOLDER, self.cookie_file)
         if os.path.exists(path_file):
@@ -368,7 +367,7 @@ class FactorialClient:
              }
         ]
         """
-        logger.info("Loading employees")
+        LOGGER.info("Loading employees")
         employee_response = self.session.get(self.EMPLOYEE_URL)
         self.check_status_code(employee_response.status_code, http_client.OK)
         employee_json = employee_response.json()
@@ -596,7 +595,7 @@ class FactorialClient:
         formatted_date = f'{year:04d}-{month:02d}-{day:02d}'
         for calendar_day in calendar:
             if calendar_day.get('date') == formatted_date:
-                logger.info(f"Can't sign today {formatted_date}, because are vacations")
+                LOGGER.info(f"Can't sign today {formatted_date}, because are vacations")
                 return False
         period = self.get_period(year=year, month=month)
         current_period = period[0]

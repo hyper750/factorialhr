@@ -9,6 +9,6 @@ if __name__ == '__main__':
     except AuthenticationTokenNotFound as err:
         print(f"Can't retrieve the login token: {err}")
     except UserNotLoggedIn as err:
-        print(err)
+        print(f'User not logged in: {err}')
     except ApiError as err:
         print(f"Api error: {err}")
