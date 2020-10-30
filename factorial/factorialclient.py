@@ -1,16 +1,19 @@
-import json
-import requests
-from http import client as http_client
-import pickle
-import os
-from bs4 import BeautifulSoup
-from factorial.exceptions import AuthenticationTokenNotFound, UserNotLoggedIn, ApiError
 import hashlib
+import json
 import logging
 import logging.config
+import os
+import pickle
 import random
 from datetime import date
+from http import client as http_client
+
+import requests
+from bs4 import BeautifulSoup
+
 from constants import BASE_PROJECT, LOGGER
+from factorial.exceptions import AuthenticationTokenNotFound, UserNotLoggedIn, ApiError
+from factorial.loader.abstract_loader import AbstractFactorialLoader
 
 
 class FactorialClient:
@@ -102,16 +105,14 @@ class FactorialClient:
         return token_value
 
     @staticmethod
-    def load_from_settings(json_settings=DEFAULT_FACTORIAL_SETTINGS):
+    def load_from_settings(factorial_loader: AbstractFactorialLoader):
         """Login from the settings if the session still valid from the saved cookies, otherwise ask for the password
 
-        :param json_settings: string config filename
+        :param factorial_loader: AbstractFactorialLoader load email and password from abstract class
         :return: FactorialClient
         """
-        with open(json_settings, 'r') as file:
-            settings = json.load(file)
-        factorial_client = FactorialClient(email=settings.get('email', ''),
-                                           password=settings.get('password', ''))
+        factorial_client = FactorialClient(email=factorial_loader.get_email(),
+                                           password=factorial_loader.get_password())
         if not factorial_client.login():
             # Session valid with the current cookie
             raise ApiError('Cannot login with the given credentials')
@@ -219,7 +220,9 @@ class FactorialClient:
         end_hours, end_minutes = self.split_time(end)
         total_minutes = self.get_total_minutes_period(start_hours, start_minutes, end_hours, end_minutes)
         start_sign_hour, start_sign_minutes = FactorialClient.random_time(start_hours, start_minutes, minutes_variation)
-        end_sign_hour, end_sign_minutes = self.convert_to_time(self.convert_to_minutes(start_sign_hour, start_sign_minutes) + total_minutes)
+        end_sign_hour, end_sign_minutes = self.convert_to_time(
+            self.convert_to_minutes(start_sign_hour, start_sign_minutes) + total_minutes
+        )
         return start_sign_hour, start_sign_minutes, end_sign_hour, end_sign_minutes
 
     def add_breaks_to_period(self, start_sign_hour, start_sign_minutes, end_sign_hour, end_sign_minutes, breaks):
@@ -230,7 +233,9 @@ class FactorialClient:
         periods = []
         start_hour = start_sign_hour
         start_minute = start_sign_minutes
-        for _break in sorted(breaks, key=lambda current_break: self.convert_to_minutes(current_break['start_hour'], current_break['start_minute']), reverse=False):
+        for _break in sorted(breaks, key=lambda current_break: self.convert_to_minutes(current_break['start_hour'],
+                                                                                       current_break['start_minute']),
+                             reverse=False):
             break_start_hour = _break.get('start_hour')
             break_start_minute = _break.get('start_minute')
             break_end_hour = _break.get('end_hour')
@@ -262,7 +267,9 @@ class FactorialClient:
         :param breaks: list of dictionaries
         :return: list of periods
         """
-        start_sign_hour, start_sign_minutes, end_sign_hour, end_sign_minutes = self.generate_period(start_work, end_work, work_minutes_variation)
+        start_sign_hour, start_sign_minutes, end_sign_hour, end_sign_minutes = self.generate_period(start_work,
+                                                                                                    end_work,
+                                                                                                    work_minutes_variation)
         breaks_with_variation = []
         for _break in breaks:
             start_break_hour, start_break_minutes, end_break_hour, end_break_minutes = self.generate_period(**_break)
@@ -272,7 +279,8 @@ class FactorialClient:
                 'end_hour': end_break_hour,
                 'end_minute': end_break_minutes
             })
-        return self.add_breaks_to_period(start_sign_hour, start_sign_minutes, end_sign_hour, end_sign_minutes, breaks_with_variation)
+        return self.add_breaks_to_period(start_sign_hour, start_sign_minutes, end_sign_hour, end_sign_minutes,
+                                         breaks_with_variation)
 
     def worked_day(self, day=date.today(), json_settings=DEFAULT_FACTORIAL_SETTINGS):
         """Mark today as worked day
