@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class AbstractFactorialLoader(ABC):
+class AbstractCredentialsLoader(ABC):
 
     @abstractmethod
     def get_email(self) -> str:

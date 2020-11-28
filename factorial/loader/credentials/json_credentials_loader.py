@@ -1,9 +1,9 @@
 import json
 
-from .abstract_loader import AbstractFactorialLoader
+from .abstract_credentials_loader import AbstractCredentialsLoader
 
 
-class JsonFactorialLoader(AbstractFactorialLoader):
+class JsonCredentialsLoader(AbstractCredentialsLoader):
 
     def __init__(self, filename: str):
         super().__init__()

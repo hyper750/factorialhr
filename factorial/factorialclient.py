@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 
 from constants import BASE_PROJECT, LOGGER
 from factorial.exceptions import AuthenticationTokenNotFound, UserNotLoggedIn, ApiError
-from factorial.loader.abstract_loader import AbstractFactorialLoader
+from factorial.loader.credentials.abstract_credentials_loader import AbstractCredentialsLoader
 
 
 class FactorialClient:
@@ -105,7 +105,7 @@ class FactorialClient:
         return token_value
 
     @staticmethod
-    def load_from_settings(factorial_loader: AbstractFactorialLoader):
+    def load_from_settings(factorial_loader: AbstractCredentialsLoader):
         """Login from the settings if the session still valid from the saved cookies, otherwise ask for the password
 
         :param factorial_loader: AbstractFactorialLoader load email and password from abstract class
