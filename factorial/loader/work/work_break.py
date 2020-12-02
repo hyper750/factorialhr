@@ -35,3 +35,6 @@ class WorkBreak:
         :return: int eg: 15
         """
         return self.minutes_variation
+
+    def __repr__(self) -> str:
+        return f'{self.get_start_hour()} - {self.get_end_hour()} ~{self.get_minutes_variation()}m'
