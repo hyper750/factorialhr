@@ -1,6 +1,8 @@
 {
-  "email": "",
-  "password": "",
+  "user": {
+    "email": "xxxx",
+    "password": "xxxx"
+  },
   "work": {
     "start": "7:30",
     "end": "15:30",

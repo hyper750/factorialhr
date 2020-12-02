@@ -12,8 +12,10 @@ class JsonCredentialsLoader(AbstractCredentialsLoader):
 
         with open(filename, 'r') as f:
             settings = json.load(f)
-            self.email = settings.get('email', '')
-            self.password = settings.get('password', '')
+
+            content = settings.get('user', {})
+            self.email = settings.get('email')
+            self.password = settings.get('password')
 
     def get_email(self) -> str:
         """Get email from json file to login to factorialhr
