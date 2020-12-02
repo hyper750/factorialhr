@@ -1,23 +1,24 @@
-import json
-import requests
-from http import client as http_client
-import pickle
-import os
-from bs4 import BeautifulSoup
-from factorial.exceptions import AuthenticationTokenNotFound, UserNotLoggedIn, ApiError
 import hashlib
 import logging
 import logging.config
+import os
+import pickle
 import random
 from datetime import date
+from http import client as http_client
+
+import requests
+from bs4 import BeautifulSoup
+
 from constants import BASE_PROJECT, LOGGER
+from factorial.exceptions import AuthenticationTokenNotFound, UserNotLoggedIn, ApiError
+from factorial.loader.credentials.abstract_credentials import AbstractCredentials
+from factorial.loader.work.abstract_work import AbstractWork
 
 
 class FactorialClient:
     # Folder to save the session's cookie
     SESSIONS_FOLDER = os.path.join(BASE_PROJECT, "sessions")
-    # Default factorial settings file
-    DEFAULT_FACTORIAL_SETTINGS = os.path.join(BASE_PROJECT, 'factorial_settings.json')
 
     # Endpoints
     BASE_NAME = "https://api.factorialhr.com/"
@@ -102,16 +103,14 @@ class FactorialClient:
         return token_value
 
     @staticmethod
-    def load_from_settings(json_settings=DEFAULT_FACTORIAL_SETTINGS):
+    def load_from_settings(credentials_loader: AbstractCredentials):
         """Login from the settings if the session still valid from the saved cookies, otherwise ask for the password
 
-        :param json_settings: string config filename
+        :param credentials_loader: AbstractFactorialLoader load email and password from abstract class
         :return: FactorialClient
         """
-        with open(json_settings, 'r') as file:
-            settings = json.load(file)
-        factorial_client = FactorialClient(email=settings.get('email', ''),
-                                           password=settings.get('password', ''))
+        factorial_client = FactorialClient(email=credentials_loader.get_email(),
+                                           password=credentials_loader.get_password())
         if not factorial_client.login():
             # Session valid with the current cookie
             raise ApiError('Cannot login with the given credentials')
@@ -219,7 +218,9 @@ class FactorialClient:
         end_hours, end_minutes = self.split_time(end)
         total_minutes = self.get_total_minutes_period(start_hours, start_minutes, end_hours, end_minutes)
         start_sign_hour, start_sign_minutes = FactorialClient.random_time(start_hours, start_minutes, minutes_variation)
-        end_sign_hour, end_sign_minutes = self.convert_to_time(self.convert_to_minutes(start_sign_hour, start_sign_minutes) + total_minutes)
+        end_sign_hour, end_sign_minutes = self.convert_to_time(
+            self.convert_to_minutes(start_sign_hour, start_sign_minutes) + total_minutes
+        )
         return start_sign_hour, start_sign_minutes, end_sign_hour, end_sign_minutes
 
     def add_breaks_to_period(self, start_sign_hour, start_sign_minutes, end_sign_hour, end_sign_minutes, breaks):
@@ -230,7 +231,9 @@ class FactorialClient:
         periods = []
         start_hour = start_sign_hour
         start_minute = start_sign_minutes
-        for _break in sorted(breaks, key=lambda current_break: self.convert_to_minutes(current_break['start_hour'], current_break['start_minute']), reverse=False):
+        for _break in sorted(breaks, key=lambda current_break: self.convert_to_minutes(current_break['start_hour'],
+                                                                                       current_break['start_minute']),
+                             reverse=False):
             break_start_hour = _break.get('start_hour')
             break_start_minute = _break.get('start_minute')
             break_end_hour = _break.get('end_hour')
@@ -259,38 +262,38 @@ class FactorialClient:
         :param start_work: string time
         :param end_work: string time
         :param work_minutes_variation: int minutes to variate
-        :param breaks: list of dictionaries
+        :param breaks: list WorkBreak
         :return: list of periods
         """
-        start_sign_hour, start_sign_minutes, end_sign_hour, end_sign_minutes = self.generate_period(start_work, end_work, work_minutes_variation)
+        start_sign_hour, start_sign_minutes, end_sign_hour, end_sign_minutes = self.generate_period(start_work,
+                                                                                                    end_work,
+                                                                                                    work_minutes_variation
+                                                                                                    )
         breaks_with_variation = []
         for _break in breaks:
-            start_break_hour, start_break_minutes, end_break_hour, end_break_minutes = self.generate_period(**_break)
+            start_break_hour, start_break_minutes, end_break_hour, end_break_minutes = self.generate_period(
+                start=_break.get_start_hour(),
+                end=_break.get_end_hour(),
+                minutes_variation=_break.get_minutes_variation()
+            )
             breaks_with_variation.append({
                 'start_hour': start_break_hour,
                 'start_minute': start_break_minutes,
                 'end_hour': end_break_hour,
                 'end_minute': end_break_minutes
             })
-        return self.add_breaks_to_period(start_sign_hour, start_sign_minutes, end_sign_hour, end_sign_minutes, breaks_with_variation)
+        return self.add_breaks_to_period(start_sign_hour, start_sign_minutes, end_sign_hour, end_sign_minutes,
+                                         breaks_with_variation)
 
-    def worked_day(self, day=date.today(), json_settings=DEFAULT_FACTORIAL_SETTINGS):
+    def worked_day(self, work_loader: AbstractWork, day=date.today()):
         """Mark today as worked day
 
+        :param work_loader: AbstractCredentialLoader load the working hours
         :param day: date to save the worked day, by default is today
-        :param json_settings: string config filename
         """
-        with open(json_settings, 'r') as file:
-            settings = json.load(file)
-        work_settings_block = settings.get('work', {})
-        start_work = work_settings_block.get('start', '')
-        end_work = work_settings_block.get('end', '')
-        work_minutes_variation = work_settings_block.get('minutes_variation', 0)
-        breaks = work_settings_block.get('breaks', [])
-
         already_work = self.get_day(year=day.year, month=day.month, day=day.day)
         if already_work:
-            if work_settings_block.get('resave'):
+            if work_loader.get_resave():
                 for worked_period in already_work:
                     self.delete_worked_period(worked_period.get('id'))
             else:
@@ -307,7 +310,12 @@ class FactorialClient:
             'end_hour': 0,
             'end_minute': 0
         }
-        worked_periods = self.generate_worked_periods(start_work, end_work, work_minutes_variation, breaks)
+        worked_periods = self.generate_worked_periods(
+            work_loader.get_start_hour(),
+            work_loader.get_end_hour(),
+            work_loader.get_minutes_variation(),
+            work_loader.get_breaks()
+        )
         for worked_period in worked_periods:
             start_hour = worked_period.get('start_hour')
             start_minute = worked_period.get('start_minute')
