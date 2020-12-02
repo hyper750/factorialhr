@@ -1,1 +1,1 @@
-from .json_credentials_loader import JsonCredentialsLoader
+from .json_credentials_loader import JsonCredentials
