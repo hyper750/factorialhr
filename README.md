@@ -10,10 +10,12 @@ By default the name of the settings file is
 `factorial_settings.json` you can always change it.
 ```json5
 {
-  // Email to login on factorialhr
-  "email": "",
-  // Password to login on factorialhr
-  "password": "",
+  "user": {
+    // Email to login on factorialhr
+    "email": "",
+    // Password to login on factorialhr
+    "password": ""
+  },
   "work": {
     // Work start time
     "start": "7:30",
