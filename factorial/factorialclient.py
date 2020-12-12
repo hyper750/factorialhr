@@ -25,7 +25,7 @@ class FactorialClient:
     # Url to be able to login (post: username, password) and logout (delete) on the api
     SESSION_URL = '{}sessions'.format(BASE_NAME)
     # Url to show the form to get the authentication token (get)
-    LOGIN_PAGE_URL = '{}users/sign_in'.format(BASE_NAME)
+    LOGIN_PAGE_URL = '{}es/users/sign_in'.format(BASE_NAME)
     # Url to get the user info (get)
     USER_INFO_URL = '{}accesses'.format(BASE_NAME)
     # Get employee (get)
@@ -69,7 +69,6 @@ class FactorialClient:
             return True
         except UserNotLoggedIn:
             payload = {
-                'utf8': '✓',
                 'authenticity_token': self.generate_new_token(),
                 'user[email]': self.email,
                 'user[password]': self.password,
@@ -77,8 +76,8 @@ class FactorialClient:
                 'commit': 'Iniciar sesión'
             }
 
-            response = self.session.post(url=self.SESSION_URL, data=payload)
-            loggedin = response.status_code == http_client.CREATED
+            response = self.session.post(url=self.LOGIN_PAGE_URL, data=payload)
+            loggedin = response.status_code == http_client.OK
             if loggedin:
                 LOGGER.info('Login successfully')
                 # Load user data
@@ -91,11 +90,10 @@ class FactorialClient:
                     LOGGER.info('Sessions saved')
             return loggedin
 
-    @staticmethod
-    def generate_new_token():
+    def generate_new_token(self):
         """Generate new token to be able to login"""
-        response = requests.get(url=FactorialClient.LOGIN_PAGE_URL)
-        soup = BeautifulSoup(response.text, 'html.parser')
+        response = self.session.get(url=self.LOGIN_PAGE_URL)
+        soup = BeautifulSoup(response.text, 'html5lib')
         auth_token = soup.find('input', attrs={'name': 'authenticity_token'})
         token_value = auth_token.get('value')
         if not token_value:
