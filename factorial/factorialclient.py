@@ -1,6 +1,5 @@
 import hashlib
 import logging
-import logging.config
 import os
 import pickle
 import random
@@ -10,10 +9,12 @@ from http import client as http_client
 import requests
 from bs4 import BeautifulSoup
 
-from constants import BASE_PROJECT, LOGGER
+from constants import BASE_PROJECT
 from factorial.exceptions import AuthenticationTokenNotFound, UserNotLoggedIn, ApiError
 from factorial.loader.credentials.abstract_credentials import AbstractCredentials
 from factorial.loader.work.abstract_work import AbstractWork
+
+LOGGER = logging.getLogger('factorial.client')
 
 
 class FactorialClient:
@@ -343,7 +344,7 @@ class FactorialClient:
         path_file = os.path.join(self.SESSIONS_FOLDER, self.cookie_file)
         if os.path.exists(path_file):
             os.remove(path_file)
-            logging.info('Logout: Removed cookies file')
+            LOGGER.info('Logout: Removed cookies file')
         self.mates.clear()
         self.current_user = {}
         return logout_correcty
