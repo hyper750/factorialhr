@@ -19,7 +19,7 @@ By default the name of the settings file is
   "work": {
     // Work start time
     "start": "7:30",
-    // Word end time
+    // Work end time
     "end": "15:30",
     /* Random minutes to variate, for example if the variation
     is 10, the sign time will be max 15:40 and min 7:20,
